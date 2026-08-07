@@ -715,6 +715,31 @@
 
 /* ===== Profile ===== */
 .profile-header { display: flex; align-items: center; gap: 18px; margin-bottom: 32px; }
+
+.avatar-edit-btn {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  border: 2px solid var(--surface);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease;
+}
+.avatar-edit-btn:hover {
+  transform: scale(1.1);
+}
+.avatar-edit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+} 
 .profile-meta-row { display: flex; gap: 28px; margin-top: 6px; }
 .profile-meta-item { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--text-secondary); }
 .profile-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; }

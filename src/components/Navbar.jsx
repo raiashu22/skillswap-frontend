@@ -2,15 +2,7 @@ import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Compass, LayoutDashboard, Coins, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
-
-function initials(name = "") {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
+import Avatar from "./Avatar.jsx";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -52,9 +44,7 @@ export default function Navbar() {
               {user.credits} credits
             </span>
             <Link to="/profile" style={{ textDecoration: "none" }}>
-              <div className="avatar" title={user.name}>
-                {initials(user.name)}
-              </div>
+              <Avatar user={user} />
             </Link>
             <button className="btn btn-ghost" onClick={handleLogout}>
               <LogOut size={14} /> Log out

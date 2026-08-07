@@ -1,17 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Star, Coins, Trash2, PencilLine, Check } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Star, Coins, Trash2, PencilLine, Check, Camera } from "lucide-react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import RatingRing from "../components/RatingRing.jsx";
+import Avatar from "../components/Avatar.jsx";
 
-function initials(name = "") {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
+const MAX_AVATAR_MB = 5;
 
 export default function Profile() {
   const { user, token, updateUser } = useAuth();
@@ -23,6 +17,9 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef(null);
 
   async function loadProfile() {
     setLoadingSkills(true);
@@ -71,11 +68,61 @@ export default function Profile() {
     }
   }
 
+  function handlePickAvatar() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleAvatarSelected(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_MB * 1024 * 1024) {
+      setError(`Image must be under ${MAX_AVATAR_MB}MB.`);
+      return;
+    }
+
+    setError("");
+    setUploadingAvatar(true);
+    try {
+      const updated = await api.uploadAvatar(file, token);
+      updateUser(updated);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   return (
     <div className="page">
       <div className="profile-header">
-        <div className="avatar avatar-lg">{initials(user.name)}</div>
+        <div style={{ position: "relative" }}>
+          <Avatar user={user} size="lg" />
+          <button
+            className="avatar-edit-btn"
+            onClick={handlePickAvatar}
+            disabled={uploadingAvatar}
+            title="Change profile picture"
+            type="button"
+          >
+            <Camera size={13} />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png, image/jpeg, image/webp, image/gif"
+            onChange={handleAvatarSelected}
+            style={{ display: "none" }}
+          />
+        </div>
+
         <RatingRing rating={user.avgRating} size={58} glow />
+
         <div>
           <h1 className="page-title" style={{ fontSize: 26 }}>
             {user.name}
@@ -88,6 +135,9 @@ export default function Profile() {
               <Star size={14} /> {user.avgRating > 0 ? `${user.avgRating} average rating` : "No ratings yet"}
             </span>
           </div>
+          {uploadingAvatar && (
+            <p style={{ fontSize: 12.5, color: "var(--blue-soft)", marginTop: 6 }}>Uploading photo...</p>
+          )}
         </div>
       </div>
 

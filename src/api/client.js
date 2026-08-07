@@ -41,7 +41,27 @@ export const api = {
 
   submitRating: (payload, token) => request("/ratings", { method: "POST", body: payload, token }),
 
-  getMe: (token) => request("/users/me", { token }),
+ getMe: (token) => request("/users/me", { token }),
   updateMe: (payload, token) => request("/users/me", { method: "PATCH", body: payload, token }),
   getMySkills: (token) => request("/users/me/skills", { token }),
+
+  // File upload needs multipart/form-data, not JSON - so this bypasses the
+  // generic request() helper and lets the browser set the Content-Type
+  // header itself (it needs to include a random boundary string).
+  uploadAvatar: async (file, token) => {
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const res = await fetch(`${API_BASE}/users/me/avatar`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(data?.error || `Upload failed with status ${res.status}`);
+    }
+    return data;
+  },
 };
