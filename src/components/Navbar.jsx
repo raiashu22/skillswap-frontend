@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Compass, LayoutDashboard, Coins, LogOut } from "lucide-react";
+import { Compass, LayoutDashboard, Coins, LogOut, BarChart3 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import Avatar from "./Avatar.jsx";
 
@@ -32,6 +32,11 @@ export default function Navbar() {
         {user && (
           <Link to="/dashboard" style={{ opacity: isActive("/dashboard") ? 1 : 0.85, display: "flex", alignItems: "center", gap: 5 }}>
             <LayoutDashboard size={14} /> Dashboard
+          </Link>
+        )}
+        {user && (
+          <Link to="/analytics" style={{ opacity: isActive("/analytics") ? 1 : 0.85, display: "flex", alignItems: "center", gap: 5 }}>
+            <BarChart3 size={14} /> Analytics
           </Link>
         )}
       </nav>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Star, Coins, Trash2, PencilLine, Check, Camera } from "lucide-react";
+import { Star, Coins, Trash2, PencilLine, Check, Camera, History, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import RatingRing from "../components/RatingRing.jsx";
@@ -21,26 +21,38 @@ export default function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef(null);
 
+  const [activity, setActivity] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
+
   async function loadProfile() {
     setLoadingSkills(true);
+    setLoadingActivity(true);
     setError("");
     try {
-      const fresh = await api.getMe(token);
+      const [fresh, skills, requests] = await Promise.all([
+        api.getMe(token),
+        api.getMySkills(token),
+        api.listMyRequests(token, "COMPLETED"),
+      ]);
+
       updateUser(fresh);
       setBioDraft(fresh.bio || "");
-      const skills = await api.getMySkills(token);
       setMySkills(skills);
+
+      const sorted = [...requests].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+      setActivity(sorted);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoadingSkills(false);
+      setLoadingActivity(false);
     }
   }
 
   useEffect(() => {
     loadProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user.id]);
 
   async function saveBio() {
     setSaving(true);
@@ -72,9 +84,32 @@ export default function Profile() {
     fileInputRef.current?.click();
   }
 
+  function resizeImage(file, maxDim = 400, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else if (height >= width && height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Could not process image"))), "image/jpeg", quality);
+      };
+      img.onerror = () => reject(new Error("Could not read image file"));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function handleAvatarSelected(e) {
     const file = e.target.files?.[0];
-    e.target.value = ""; // allow re-selecting the same file later
+    e.target.value = "";
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -89,7 +124,8 @@ export default function Profile() {
     setError("");
     setUploadingAvatar(true);
     try {
-      const updated = await api.uploadAvatar(file, token);
+      const resized = await resizeImage(file);
+      const updated = await api.uploadAvatar(resized, token);
       updateUser(updated);
     } catch (err) {
       setError(err.message);
@@ -202,6 +238,44 @@ export default function Profile() {
             ))
           )}
         </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 20 }}>
+        <h3 style={{ fontSize: 16, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+          <History size={16} /> Activity history
+        </h3>
+
+        {loadingActivity ? (
+          <div className="skeleton" style={{ height: 60 }} />
+        ) : activity.length === 0 ? (
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+            Completed sessions will show up here once you finish your first exchange.
+          </p>
+        ) : (
+          <div className="activity-list">
+            {activity.map((r) => {
+              const isProvider = r.providerId === user.id;
+              const otherPerson = isProvider ? r.requester.name : r.provider.name;
+              return (
+                <div key={r.id} className="activity-row">
+                  <div className={`activity-icon ${isProvider ? "in" : "out"}`}>
+                    {isProvider ? <ArrowDownRight size={15} /> : <ArrowUpRight size={15} />}
+                  </div>
+                  <div className="activity-info">
+                    <span className="activity-title">
+                      {isProvider ? `Taught ${otherPerson}` : `Learned from ${otherPerson}`} — {r.skill.title}
+                    </span>
+                    <span className="activity-meta">
+                      {new Date(r.completedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      {" · "}
+                      {isProvider ? `+${r.credits}` : `-${r.credits}`} credit{r.credits > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

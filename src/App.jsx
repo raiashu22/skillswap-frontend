@@ -10,6 +10,7 @@ import Signup from "./pages/Signup.jsx";
 import BrowseSkills from "./pages/BrowseSkills.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Profile from "./pages/Profile.jsx";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard.jsx";
 import "./App.css";
 
 export default function App() {
@@ -35,6 +36,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <AnalyticsDashboard />
             </ProtectedRoute>
           }
         />

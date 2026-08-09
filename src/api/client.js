@@ -33,13 +33,14 @@ export const api = {
   createSkill: (payload, token) => request("/skills", { method: "POST", body: payload, token }),
   deleteSkill: (id, token) => request(`/skills/${id}`, { method: "DELETE", token }),
 
-  listMyRequests: (token) => request("/requests/mine", { token }),
+  listMyRequests: (token, status) => request(`/requests/mine${status ? `?status=${status}` : ""}`, { token }),
   createRequest: (payload, token) => request("/requests", { method: "POST", body: payload, token }),
   acceptRequest: (id, token) => request(`/requests/${id}/accept`, { method: "PATCH", token }),
   declineRequest: (id, token) => request(`/requests/${id}/decline`, { method: "PATCH", token }),
   completeRequest: (id, token) => request(`/requests/${id}/complete`, { method: "PATCH", token }),
 
-  submitRating: (payload, token) => request("/ratings", { method: "POST", body: payload, token }),
+  createEndorsement: (skillId, token) => request("/endorsements", { method: "POST", body: { skillId }, token }),
+  getMyAnalytics: (token) => request("/analytics/me", { token }),
 
  getMe: (token) => request("/users/me", { token }),
   updateMe: (payload, token) => request("/users/me", { method: "PATCH", body: payload, token }),

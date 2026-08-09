@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, X, Send, Code2, Palette, GraduationCap, Briefcase, Music, MoreHorizontal, Sparkles } from "lucide-react";
+import { Plus, X, Send, Code2, Palette, GraduationCap, Briefcase, Music, MoreHorizontal, Sparkles, Search, ArrowUpDown, ThumbsUp } from "lucide-react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTilt } from "../hooks/useTilt.js";
@@ -25,9 +25,28 @@ const CATEGORY_ICONS = {
   Other: MoreHorizontal,
 };
 
-function SkillCard({ skill, idx, user, onRequest, requestingId }) {
+function SkillCard({ skill, idx, user, token, onRequest, requestingId }) {
   const tiltRef = useTilt(6);
   const CategoryIcon = CATEGORY_ICONS[skill.category] || MoreHorizontal;
+
+  const [endorseCount, setEndorseCount] = useState(skill._count?.endorsements ?? 0);
+  const [endorsing, setEndorsing] = useState(false);
+  const [endorseMsg, setEndorseMsg] = useState("");
+  const [endorsed, setEndorsed] = useState(false);
+
+  async function handleEndorse() {
+    setEndorsing(true);
+    setEndorseMsg("");
+    try {
+      await api.createEndorsement(skill.id, token);
+      setEndorseCount((c) => c + 1);
+      setEndorsed(true);
+    } catch (err) {
+      setEndorseMsg(err.message);
+    } finally {
+      setEndorsing(false);
+    }
+  }
 
   return (
     <div
@@ -40,23 +59,44 @@ function SkillCard({ skill, idx, user, onRequest, requestingId }) {
           <CategoryIcon size={15} />
         </div>
         <span className="skill-card-category">{skill.category}</span>
+        {endorseCount > 0 && (
+          <span className="endorse-badge" title={`${endorseCount} endorsement${endorseCount > 1 ? "s" : ""}`}>
+            <ThumbsUp size={11} /> {endorseCount}
+          </span>
+        )}
       </div>
       <h3 className="skill-card-title">{skill.title}</h3>
       <p className="skill-card-desc">{skill.description || "No description provided."}</p>
+
+      {endorseMsg && <p className="endorse-msg">{endorseMsg}</p>}
+
       <div className="skill-card-footer">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <RatingRing rating={skill.user.avgRating} size={34} />
           <span className="skill-card-user">{skill.user.name}</span>
         </div>
-        {user && user.id !== skill.userId && (
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => onRequest(skill)}
-            disabled={requestingId === skill.id}
-          >
-            <Send size={12} /> {requestingId === skill.id ? "Sending..." : "Request"}
-          </button>
-        )}
+        <div style={{ display: "flex", gap: 6 }}>
+          {user && user.id !== skill.userId && !endorsed && (
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ color: "var(--purple-600)", borderColor: "var(--border)" }}
+              onClick={handleEndorse}
+              disabled={endorsing}
+              title="Endorse this skill (after completing a session)"
+            >
+              <ThumbsUp size={12} /> {endorsing ? "..." : "Endorse"}
+            </button>
+          )}
+          {user && user.id !== skill.userId && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => onRequest(skill)}
+              disabled={requestingId === skill.id}
+            >
+              <Send size={12} /> {requestingId === skill.id ? "Sending..." : "Request"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -71,6 +111,10 @@ export default function BrowseSkills() {
   const [error, setError] = useState("");
   const [activeCategory, setActiveCategory] = useState(searchParams.get("category") || "All");
 
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ title: "", category: "Web Development", description: "" });
   const [formError, setFormError] = useState("");
@@ -79,11 +123,21 @@ export default function BrowseSkills() {
   const [requestingId, setRequestingId] = useState(null);
   const [feedback, setFeedback] = useState("");
 
+  // Debounce the search box so we don't fire a request on every keystroke -
+  // wait 400ms after the user stops typing before actually searching.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   async function loadSkills() {
     setLoading(true);
     setError("");
     try {
-      const params = activeCategory !== "All" ? { category: activeCategory } : {};
+      const params = {};
+      if (activeCategory !== "All") params.category = activeCategory;
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (sortBy === "rating") params.sort = "rating";
       const data = await api.listSkills(params);
       setSkills(data);
     } catch (err) {
@@ -96,7 +150,7 @@ export default function BrowseSkills() {
   useEffect(() => {
     loadSkills();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory]);
+  }, [activeCategory, debouncedSearch, sortBy]);
 
   async function handleCreateSkill(e) {
     e.preventDefault();
@@ -194,6 +248,31 @@ export default function BrowseSkills() {
         </div>
       )}
 
+      <div className="search-sort-row">
+        <div className="search-box">
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search skills by title or description..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+          {searchInput && (
+            <button className="search-clear-btn" onClick={() => setSearchInput("")} type="button" aria-label="Clear search">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <div className="sort-select">
+          <ArrowUpDown size={14} />
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="newest">Newest first</option>
+            <option value="rating">Top rated</option>
+          </select>
+        </div>
+      </div>
+
       <div className="filter-row">
         {CATEGORIES.map((c) => (
           <button
@@ -220,8 +299,17 @@ export default function BrowseSkills() {
           <div className="empty-state-icon">
             <Sparkles size={24} />
           </div>
-          <h3>No skills listed yet</h3>
-          <p>Be the first to list one, or check back once more students join in.</p>
+          {debouncedSearch || activeCategory !== "All" ? (
+            <>
+              <h3>No matching skills</h3>
+              <p>Try a different search term or category.</p>
+            </>
+          ) : (
+            <>
+              <h3>No skills listed yet</h3>
+              <p>Be the first to list one, or check back once more students join in.</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="skills-grid">
@@ -231,9 +319,11 @@ export default function BrowseSkills() {
               skill={skill}
               idx={idx}
               user={user}
+              token={token}
               onRequest={handleRequest}
               requestingId={requestingId}
             />
+            
           ))}
         </div>
       )}
