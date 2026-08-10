@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Check, X, CheckCircle2, Star, Coins, Clock, Handshake, Award } from "lucide-react";
+import { Check, X, CheckCircle2, Star, Coins, Clock, Handshake, Award, CalendarClock } from "lucide-react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -10,9 +10,11 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState("all");
   const [busyId, setBusyId] = useState(null);
-  const [ratingFor, setRatingFor] = useState(null); // request id currently being rated
+  const [ratingFor, setRatingFor] = useState(null);
   const [ratingScore, setRatingScore] = useState(5);
   const [ratingComment, setRatingComment] = useState("");
+  const [schedulingFor, setSchedulingFor] = useState(null);
+  const [scheduleDraft, setScheduleDraft] = useState("");
 
   async function loadRequests() {
     setLoading(true);
@@ -72,9 +74,29 @@ export default function Dashboard() {
     }
   }
 
+  async function handleSchedule(requestId) {
+    if (!scheduleDraft) return;
+    setBusyId(requestId);
+    setError("");
+    try {
+      await api.scheduleRequest(requestId, new Date(scheduleDraft).toISOString(), token);
+      setSchedulingFor(null);
+      setScheduleDraft("");
+      await loadRequests();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const pendingCount = requests.filter((r) => r.status === "PENDING").length;
   const acceptedCount = requests.filter((r) => r.status === "ACCEPTED").length;
   const completedCount = requests.filter((r) => r.status === "COMPLETED").length;
+
+  const upcomingSessions = requests
+    .filter((r) => r.status === "ACCEPTED" && r.scheduledAt && new Date(r.scheduledAt) > new Date())
+    .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
 
   return (
     <div className="page">
@@ -123,6 +145,34 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {upcomingSessions.length > 0 && (
+        <div className="card" style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 15, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+            <CalendarClock size={16} /> Upcoming sessions
+          </h3>
+          <div className="upcoming-list">
+            {upcomingSessions.map((r) => {
+              const isProvider = r.providerId === user.id;
+              const otherPerson = isProvider ? r.requester.name : r.provider.name;
+              return (
+                <div key={r.id} className="upcoming-row">
+                  <div className="upcoming-date-badge">
+                    <span>{new Date(r.scheduledAt).toLocaleDateString("en-IN", { day: "numeric" })}</span>
+                    <span>{new Date(r.scheduledAt).toLocaleDateString("en-IN", { month: "short" })}</span>
+                  </div>
+                  <div>
+                    <div className="request-row-title">{r.skill.title}</div>
+                    <div className="request-row-meta">
+                      with {otherPerson} · {new Date(r.scheduledAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="tabs">
         <button className={`tab ${tab === "all" ? "active" : ""}`} onClick={() => setTab("all")}>
           All
@@ -159,6 +209,13 @@ export default function Dashboard() {
                   <span className="request-row-title">{r.skill.title}</span>
                   <span className="request-row-meta">
                     {isProvider ? `Requested by ${otherPerson}` : `Providing: ${otherPerson}`} · {r.credits} credit{r.credits > 1 ? "s" : ""}
+                    {r.scheduledAt && (
+                      <>
+                        {" · "}
+                        <CalendarClock size={11} style={{ verticalAlign: -2, display: "inline" }} />{" "}
+                        {new Date(r.scheduledAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                      </>
+                    )}
                   </span>
                 </div>
 
@@ -193,6 +250,36 @@ export default function Dashboard() {
                       <CheckCircle2 size={13} /> Mark complete
                     </button>
                   )}
+
+                  {(r.status === "PENDING" || r.status === "ACCEPTED") &&
+                    (schedulingFor === r.id ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <input
+                          type="datetime-local"
+                          value={scheduleDraft}
+                          onChange={(e) => setScheduleDraft(e.target.value)}
+                          style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "rgba(255,255,255,0.04)", color: "var(--text-primary)", fontSize: 12.5 }}
+                        />
+                        <button
+                          className="btn btn-primary btn-sm"
+                          disabled={busyId === r.id || !scheduleDraft}
+                          onClick={() => handleSchedule(r.id)}
+                        >
+                          <Check size={12} />
+                        </button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => setSchedulingFor(null)} style={{ borderColor: "var(--border)" }}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: "var(--blue-soft)", borderColor: "var(--border)" }}
+                        onClick={() => setSchedulingFor(r.id)}
+                      >
+                        <CalendarClock size={13} /> {r.scheduledAt ? "Reschedule" : "Schedule"}
+                      </button>
+                    ))}
 
                   {r.status === "COMPLETED" &&
                     (ratingFor === r.id ? (

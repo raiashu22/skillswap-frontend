@@ -38,6 +38,7 @@ export const api = {
   acceptRequest: (id, token) => request(`/requests/${id}/accept`, { method: "PATCH", token }),
   declineRequest: (id, token) => request(`/requests/${id}/decline`, { method: "PATCH", token }),
   completeRequest: (id, token) => request(`/requests/${id}/complete`, { method: "PATCH", token }),
+   scheduleRequest: (id, scheduledAt, token) => request(`/requests/${id}/schedule`, { method: "PATCH", body: { scheduledAt }, token }),
 
   createEndorsement: (skillId, token) => request("/endorsements", { method: "POST", body: { skillId }, token }),
   getMyAnalytics: (token) => request("/analytics/me", { token }),
