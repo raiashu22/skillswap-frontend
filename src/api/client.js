@@ -41,6 +41,10 @@ export const api = {
 
   createEndorsement: (skillId, token) => request("/endorsements", { method: "POST", body: { skillId }, token }),
   getMyAnalytics: (token) => request("/analytics/me", { token }),
+  listMyNotifications: (token) => request("/notifications/mine", { token }),
+  getUnreadCount: (token) => request("/notifications/unread-count", { token }),
+  markNotificationRead: (id, token) => request(`/notifications/${id}/read`, { method: "PATCH", token }),
+  markAllNotificationsRead: (token) => request("/notifications/read-all", { method: "PATCH", token }),
 
  getMe: (token) => request("/users/me", { token }),
   updateMe: (payload, token) => request("/users/me", { method: "PATCH", body: payload, token }),

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Compass, LayoutDashboard, Coins, LogOut, BarChart3 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import Avatar from "./Avatar.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -48,6 +49,7 @@ export default function Navbar() {
               <Coins size={12} style={{ marginRight: 4, verticalAlign: -2 }} />
               {user.credits} credits
             </span>
+            <NotificationBell />
             <Link to="/profile" style={{ textDecoration: "none" }}>
               <Avatar user={user} />
             </Link>
