@@ -69,7 +69,7 @@ export default function Home() {
         <div className="hero-split">
           <div className="hero-inner">
             <span className="hero-badge">
-              <Sparkles size={14} /> Built for ABESIT students
+              <Sparkles size={14} /> Built for Students
             </span>
             <h1 className="hero-title">
               Trade skills,

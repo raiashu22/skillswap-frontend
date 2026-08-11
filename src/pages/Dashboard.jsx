@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Check, X, CheckCircle2, Star, Coins, Clock, Handshake, Award, CalendarClock } from "lucide-react";
+import { Check, X, CheckCircle2, Star, Coins, Clock, Handshake, Award, CalendarClock, MessageCircle } from "lucide-react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import ChatPanel from "../components/ChatPanel.jsx";
 
 export default function Dashboard() {
   const { user, token, updateUser } = useAuth();
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [ratingComment, setRatingComment] = useState("");
   const [schedulingFor, setSchedulingFor] = useState(null);
   const [scheduleDraft, setScheduleDraft] = useState("");
+  const [chattingWith, setChattingWith] = useState(null);
 
   async function loadRequests() {
     setLoading(true);
@@ -241,6 +243,16 @@ export default function Dashboard() {
                     </>
                   )}
 
+                  {(r.status === "ACCEPTED" || r.status === "COMPLETED") && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: "var(--green-glow)", borderColor: "var(--border)" }}
+                      onClick={() => setChattingWith(r)}
+                    >
+                      <MessageCircle size={13} /> Chat
+                    </button>
+                  )}
+
                   {r.status === "ACCEPTED" && (
                     <button
                       className="btn btn-primary btn-sm"
@@ -319,6 +331,16 @@ export default function Dashboard() {
             );
           })}
         </div>
+      )}
+
+      {chattingWith && (
+        <ChatPanel
+          requestId={chattingWith.id}
+          otherPersonName={chattingWith.providerId === user.id ? chattingWith.requester.name : chattingWith.provider.name}
+          currentUserId={user.id}
+          token={token}
+          onClose={() => setChattingWith(null)}
+        />
       )}
     </div>
   );
