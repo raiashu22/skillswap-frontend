@@ -56,7 +56,9 @@ export const api = {
   // header itself (it needs to include a random boundary string).
   uploadAvatar: async (file, token) => {
     const formData = new FormData();
-    formData.append("avatar", file);
+    // A resized image (canvas output) is a plain Blob with no filename, so
+    // the backend's extension check needs one supplied explicitly here.
+    formData.append("avatar", file, file.name || "avatar.jpg");
 
     const res = await fetch(`${API_BASE}/users/me/avatar`, {
       method: "POST",
@@ -70,4 +72,5 @@ export const api = {
     }
     return data;
   },
+  removeAvatar: (token) => request("/users/me/avatar", { method: "DELETE", token }),
 };

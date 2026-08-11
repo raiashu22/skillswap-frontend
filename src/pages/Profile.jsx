@@ -134,12 +134,25 @@ export default function Profile() {
     }
   }
 
+  async function handleRemoveAvatar() {
+    setError("");
+    setUploadingAvatar(true);
+    try {
+      const updated = await api.removeAvatar(token);
+      updateUser(updated);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   return (
     <div className="page">
       <div className="profile-header">
         <div style={{ position: "relative" }}>
           <Avatar user={user} size="lg" />
-          <button
+         <button
             className="avatar-edit-btn"
             onClick={handlePickAvatar}
             disabled={uploadingAvatar}
@@ -148,6 +161,17 @@ export default function Profile() {
           >
             <Camera size={13} />
           </button>
+          {user.avatarUrl && (
+            <button
+              className="avatar-remove-btn"
+              onClick={handleRemoveAvatar}
+              disabled={uploadingAvatar}
+              title="Remove profile picture"
+              type="button"
+            >
+              <Trash2 size={11} />
+            </button>
+          )}
           <input
             ref={fileInputRef}
             type="file"
