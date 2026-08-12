@@ -122,6 +122,8 @@ export default function BrowseSkills() {
 
   const [requestingId, setRequestingId] = useState(null);
   const [feedback, setFeedback] = useState("");
+  const [recommendations, setRecommendations] = useState([]);
+  const [loadingRecs, setLoadingRecs] = useState(true);
 
   // Debounce the search box so we don't fire a request on every keystroke -
   // wait 400ms after the user stops typing before actually searching.
@@ -129,6 +131,26 @@ export default function BrowseSkills() {
     const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    if (!token) {
+      setLoadingRecs(false);
+      return;
+    }
+    async function loadRecs() {
+      setLoadingRecs(true);
+      try {
+        const data = await api.getRecommendedSkills(token);
+        setRecommendations(data.recommendations || []);
+      } catch {
+        // Recommendations are a nice-to-have - fail silently, the rest of
+        // the page still works fine without them.
+      } finally {
+        setLoadingRecs(false);
+      }
+    }
+    loadRecs();
+  }, [token]);
 
   async function loadSkills() {
     setLoading(true);
@@ -203,6 +225,39 @@ export default function BrowseSkills() {
           </button>
         )}
       </div>
+
+      {user && !loadingRecs && recommendations.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <p className="page-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Sparkles size={13} /> Recommended for you
+          </p>
+          <div className="recs-row">
+            {recommendations.map((skill) => {
+              const RecIcon = CATEGORY_ICONS[skill.category] || MoreHorizontal;
+              return (
+                <div key={skill.id} className="card rec-card">
+                  <div className="rec-card-top">
+                    <div className="step-icon i-purple" style={{ width: 28, height: 28, marginBottom: 0 }}>
+                      <RecIcon size={14} />
+                    </div>
+                    <span className="rec-reason">{skill._reason}</span>
+                  </div>
+                  <h4 className="rec-title">{skill.title}</h4>
+                  <p className="rec-provider">by {skill.user.name}</p>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    style={{ width: "100%", justifyContent: "center" }}
+                    onClick={() => handleRequest(skill)}
+                    disabled={requestingId === skill.id}
+                  >
+                    <Send size={12} /> {requestingId === skill.id ? "Sending..." : "Request"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="card" style={{ marginBottom: 28 }}>
