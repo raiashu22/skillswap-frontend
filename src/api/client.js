@@ -42,7 +42,11 @@ export const api = {
   getRequestMessages: (id, token) => request(`/requests/${id}/messages`, { token }),
   createEndorsement: (skillId, token) => request("/endorsements", { method: "POST", body: { skillId }, token }),
   getMyAnalytics: (token) => request("/analytics/me", { token }),
-   getRecommendedSkills: (token) => request("/skills/recommended", { token }),
+    getRecommendedSkills: (token) => request("/skills/recommended", { token }),
+
+  listConversations: (token) => request("/chats/conversations", { token }),
+  markThreadRead: (requestId, token) => request(`/chats/${requestId}/read`, { method: "PATCH", token }),
+  getChatUnreadTotal: (token) => request("/chats/unread-total", { token }),
   listMyNotifications: (token) => request("/notifications/mine", { token }),
   getUnreadCount: (token) => request("/notifications/unread-count", { token }),
   markNotificationRead: (id, token) => request(`/notifications/${id}/read`, { method: "PATCH", token }),

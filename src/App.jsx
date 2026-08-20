@@ -11,6 +11,7 @@ import BrowseSkills from "./pages/BrowseSkills.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Profile from "./pages/Profile.jsx";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard.jsx";
+import Messages from "./pages/Messages.jsx";
 import "./App.css";
 
 export default function App() {
@@ -39,11 +40,19 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
+                <Route
           path="/analytics"
           element={
             <ProtectedRoute>
               <AnalyticsDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/messages"
+          element={
+            <ProtectedRoute>
+              <Messages />
             </ProtectedRoute>
           }
         />
